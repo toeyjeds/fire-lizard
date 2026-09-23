@@ -1,0 +1,43 @@
+Read and follow the instructions in .github/prompts/project_setup.md.
+
+Act as a Senior Full-Stack Engineer and Solution Architect.
+
+Build the complete AI Hackathon application described in that file.
+
+Requirements:
+1. Create the complete project structure.
+2. Implement the Next.js frontend.
+3. Implement the FastAPI backend.
+4. Implement PostgreSQL integration.
+5. Implement Redis integration.
+6. Implement the AI provider abstraction.
+7. Implement MockLLMProvider and OpenAIProvider.
+8. Create Dockerfiles for frontend and backend.
+9. Create docker-compose.yml compatible with Podman Compose.
+10. Create .env.example files.
+11. Create backend tests.
+12. Create README.md.
+13. Create Makefile.
+14. Follow SOLID principles where appropriate.
+15. Do not create unnecessary microservices.
+16. Keep the implementation simple and suitable for an AI Hackathon demo.
+
+Important:
+- Do not only create the files.
+- After implementation, inspect the generated project.
+- Run the necessary tests.
+- Build the containers using Podman.
+- Run:
+
+  podman compose up --build
+
+- Verify that all services can start.
+- Fix any build, dependency, networking, or runtime errors you encounter.
+- Verify:
+  http://localhost:3000
+  http://localhost:8000
+  http://localhost:8000/docs
+
+Before making major architectural changes, follow the architecture specified in project_setup.md.
+
+Start by inspecting the existing repository and then implement the project.
