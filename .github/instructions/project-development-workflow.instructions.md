@@ -1,13 +1,8 @@
 ---
 name: Project Development Workflow
-description: "Use when planning or delivering a project through the Requirement Analyst, System Analyst, Senior Developer, and Tester workflow; covering requirements, system analysis, project structure, task breakdown, implementation, Unit Tests, security, and validation."
+description: "Use when planning or delivering a project through the BA, SA, Senior Developer, and Tester workflow; covering requirements, system analysis, project structure, task breakdown, implementation, Unit Tests, security, and validation."
 ---
 # Project Development Workflow
-
-## Project File Storage Rules
-- Store Word documents (`.doc` and `.docx`) in `documents/`.
-- Store presentation files (`.ppt` and `.pptx`) in `presentations/`.
-- Preserve these folder conventions unless the user explicitly requests another path.
 
 ## Project Color Tokens
 - Use exactly these three project colors unless the user explicitly approves an exception:
@@ -21,10 +16,10 @@ description: "Use when planning or delivering a project through the Requirement 
 Follow this workflow for project work unless the user explicitly requests a different scope or stage:
 
 ```text
-Requirement Analyst
+BA
         |
         v
-System Analyst
+SA
         |
         v
 Senior Developer
@@ -41,16 +36,8 @@ Tester
 - Use the user's language for reports and communication while preserving precise English technical terms when useful.
 - Keep requirements, architecture, project structure, tasks, implementation, and test evidence traceable to one another.
 
-## Mock API Synchronization Rule
-- Treat `fire-lizard-mock/` and `fire-lizard-swagger/` as a synchronized mock API pair. A mock API change is incomplete until both projects and their documentation describe the same API surface.
-- When an API, route, method, request, response, status code, schema, API name, or port is added, changed, or removed in `fire-lizard-mock/`, update the matching `fire-lizard-swagger/openapi.yaml`, Swagger documentation, mock behavior, and relevant README/status records in the same task.
-- When `fire-lizard-swagger/openapi.yaml` changes, apply the corresponding change to `fire-lizard-mock/mock_data/imposters/imposters.json` and the organized response examples under `fire-lizard-mock/mock_data/services/`.
-- Keep the service boundaries explicit: Mountebank remains the multi-port mock server (`8888` admin, `3000` internal, `3001` external), while `fire-lizard-swagger` remains the OpenAPI/documentation project and its local mock server remains on its documented port.
-- Before marking a synchronized mock change complete, run `fire-lizard-mock` configuration and API checks, run `fire-lizard-swagger` OpenAPI validation and mock checks, and compare route, port, response, and schema evidence across both projects.
-- If the two projects intentionally differ, record the difference, rationale, owner, and follow-up validation in `docs/project-status.md`; never silently leave the API definitions inconsistent.
-
-## Stage 1: Requirement Analyst
-The Requirement Analyst gathers and clarifies the problem before technical design begins.
+## Stage 1: BA
+The BA gathers and clarifies the problem before technical design begins.
 
 Responsibilities:
 - Interview stakeholders in focused rounds of no more than five high-value questions.
@@ -61,7 +48,6 @@ Responsibilities:
 Required output:
 - Project Requirements Summary.
 - `context.md` containing the complete structured requirements handoff.
-- A Word document containing the same approved requirements report, normally `documents/requirements-summary.docx` unless the user specifies another path.
 - Stakeholders and users.
 - In-scope and out-of-scope boundaries.
 - Functional and non-functional requirements with IDs, priorities, sources, and status.
@@ -70,7 +56,6 @@ Required output:
 
 Restriction:
 - Do not write application code or make implementation changes.
-- Word generation is documentation work only. Do not install dependencies or fetch packages solely to create the document; record a blocker if no local converter is available.
 
 ## Stage 2: System Analyst
 The System Analyst transforms the requirements into a system design proposal.
@@ -115,7 +100,7 @@ Project skeleton rule:
 - Skeleton work must not include business logic, API behavior, UI behavior, database migrations, seed data, or production infrastructure implementation.
 - Clearly label generated files as skeleton or placeholders.
 - After creating the skeleton, update `README.md` with the current Tech Stack, structure, prerequisites, status, limitations, and links to planning documents.
-- Save the full Task Breakdown in an existing `Task.md` or `Roadmap.md`; if neither exists, create `Task.md` by default.
+- Save the full Task Breakdown in `Task.md`.
 
 Required output:
 - Technical Preparation Plan.
@@ -126,7 +111,7 @@ Required output:
 - Phased delivery plan.
 - Work Breakdown with traceable Task IDs.
 - Updated `README.md` after project skeleton creation.
-- Task Breakdown persisted in `Task.md` or `Roadmap.md`.
+- Task Breakdown persisted in `Task.md`.
 - Risks, blockers, open decisions, and implementation readiness verdict.
 
 ## Stage 3.1: Senior Developer - Implementation
@@ -145,7 +130,7 @@ Responsibilities:
 Preparation gate:
 - Do not begin business logic implementation until the project structure and module boundaries are documented.
 - Confirm `README.md` describes the current structure and selected Tech Stack.
-- Confirm `Task.md` or `Roadmap.md` contains stable Task IDs, dependencies, owners, and acceptance criteria.
+- Confirm `Task.md` contains stable Task IDs, dependencies, owners, and acceptance criteria.
 - Confirm database preparation, API/integration contracts, testing strategy, security conventions, and observability conventions are recorded when applicable.
 - Record unresolved decisions and blockers explicitly; do not silently invent requirements.
 - If a required Unit Test cannot be created or executed, mark the development task `Blocked` with the exact blocker; do not mark it complete.
