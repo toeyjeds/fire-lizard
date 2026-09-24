@@ -1,13 +1,5 @@
-
 ---
-
-# 4. `testing.instructions.md`
-
-อันนี้สำคัญ เพราะจะควบคุม Tester Agent และ Developer Agent เวลาทำ test
-
-```md
----
-applyTo: "**/*.{py,ts,tsx}"
+applyTo: "**/*.{java,ts,tsx}"
 ---
 
 # Testing Standards
@@ -30,23 +22,40 @@ Prioritize:
 
 Use:
 
-- Pytest
-- FastAPI TestClient
+- JUnit 5
+- Mockito
+- Spring Boot Test (`@SpringBootTest`, `@WebMvcTest`)
+- Testcontainers (SQL Server, Redis) for `cds-orch-service` integration tests
+- A fake/local SMTP server (e.g. GreenMail or MailHog) for `cds-orch-service` email tests — never send real email during tests
 
-Test:
+Test per service:
+
+**cds-gateway-service**
+
+- Health endpoint
+- Routing behavior
+- Rate limit enforcement
+- Request/response mapping
+- Field masking
+- Input/output validation
+
+**cds-orch-service**
 
 - Health endpoint
 - API validation
-- Service layer
+- Service layer (business logic)
 - Repository behavior
-- AI provider
+- Notification/email sending (mocked `JavaMailSender` or fake SMTP server)
 - Error handling
 
-Example:
+Example (`cds-orch-service`):
 
 ```text
-tests/
-├── test_health.py
-├── test_chat_api.py
-├── test_chat_service.py
-└── test_ai_provider.py
+src/test/java/.../
+├── HealthControllerTest.java
+├── OrderControllerTest.java
+├── OrderServiceTest.java
+└── NotificationServiceTest.java
+```
+
+Tests must not require any external service credentials.

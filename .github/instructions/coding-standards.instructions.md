@@ -43,7 +43,7 @@ Controller
  ├── Business logic
  ├── Database query
  ├── Redis operation
- └── AI API call
+ └── External API call
 ```
 
 Good:
@@ -53,7 +53,7 @@ Controller
     ↓
 Service
     ↓
-Repository / AI Provider
+Repository / External Provider
 ```
 
 ---
@@ -65,8 +65,8 @@ Design components so new behavior can be added without modifying existing busine
 Example:
 
 ```text
-LLMProvider
-├── MockLLMProvider
+NotificationProvider
+├── SmtpNotificationProvider
 └── FutureProvider
 ```
 
@@ -79,9 +79,9 @@ Implementations of an abstraction must be safely replaceable without breaking th
 Example:
 
 ```text
-LLMProvider
+NotificationProvider
     ↓
-MockLLMProvider
+SmtpNotificationProvider
 ```
 
 All providers should follow the same contract.
@@ -105,9 +105,9 @@ Example:
 ```text
 Service
   ↓
-LLMProvider
+NotificationProvider
   ↓
-MockLLMProvider
+SmtpNotificationProvider
 ```
 
 Do not make business logic directly depend on a concrete external SDK.
@@ -151,10 +151,10 @@ Good:
 
 ```text
 getUserProfile()
-createChatSession()
-validateChatRequest()
-MockLLMProvider
-ChatService
+createOrder()
+validateOrderRequest()
+NotificationService
+OrderService
 UserRepository
 ```
 
@@ -216,16 +216,16 @@ Do not use magic numbers or magic strings.
 
 Bad:
 
-```python
-if retry_count > 3:
+```java
+if (retryCount > 3) {
 ```
 
 Prefer:
 
-```python
-MAX_RETRY_COUNT = 3
+```java
+private static final int MAX_RETRY_COUNT = 3;
 
-if retry_count > MAX_RETRY_COUNT:
+if (retryCount > MAX_RETRY_COUNT) {
 ```
 
 Centralize configuration values when appropriate.
@@ -247,16 +247,16 @@ Avoid comments that simply repeat the code.
 
 Bad:
 
-```python
-# Increment counter
-counter += 1
+```java
+// Increment counter
+counter++;
 ```
 
 Good:
 
-```python
-# External AI provider allows a maximum of three retries.
-retry_count += 1
+```java
+// External service allows a maximum of three retries.
+retryCount++;
 ```
 
 Do not leave unnecessary commented-out code.
@@ -271,21 +271,23 @@ Do not silently ignore exceptions.
 
 Bad:
 
-```python
-try:
-    process()
-except Exception:
-    pass
+```java
+try {
+    process();
+} catch (Exception e) {
+    // ignored
+}
 ```
 
 Prefer:
 
-```python
-try:
-    process()
-except ExternalServiceError as error:
-    logger.error("External service failed", exc_info=error)
-    raise
+```java
+try {
+    process();
+} catch (ExternalServiceException error) {
+    log.error("External service failed", error);
+    throw error;
+}
 ```
 
 Use meaningful error types.
@@ -335,14 +337,15 @@ Never put secrets directly into source code.
 
 Bad:
 
-```python
-DATABASE_PASSWORD = "hardcoded-secret"
+```java
+private static final String DATABASE_PASSWORD = "hardcoded-secret";
 ```
 
 Good:
 
-```python
-DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
+```java
+@Value("${spring.datasource.password}")
+private String databasePassword;
 ```
 
 Use environment variables or a secure secret-management mechanism.
@@ -448,8 +451,8 @@ For TypeScript:
 Prefer:
 
 ```typescript
-interface ChatRequest {
-  message: string;
+interface OrderRequest {
+  customerId: string;
 }
 ```
 
@@ -459,16 +462,17 @@ Avoid:
 const request: any = {};
 ```
 
-For Python:
+For Java:
 
 Prefer:
 
-```python
-def generate_response(message: str) -> str:
+```java
+public String generateResponse(String message) {
     ...
+}
 ```
 
-Use type hints consistently.
+Avoid raw types and unchecked casts.
 
 ---
 
@@ -480,13 +484,13 @@ Do not assume values are always present.
 
 Bad:
 
-```python
-user.name.upper()
+```java
+user.getName().toUpperCase();
 ```
 
-when `user` or `name` may be null.
+when `user` or `getName()` may be null.
 
-Prefer explicit validation or safe handling.
+Prefer `Optional<T>` or explicit null checks over assuming a value is present.
 
 ---
 
@@ -517,14 +521,15 @@ Avoid extremely large files.
 
 Group files by responsibility.
 
-Backend:
+Backend (per service — `cds-gateway-service`, `cds-orch-service`):
 
 ```text
 api/
-services/
-repositories/
-models/
-schemas/
+service/
+dto/
+mapper/       (cds-gateway-service only)
+repository/   (cds-orch-service only)
+model/        (cds-orch-service only)
 ```
 
 Frontend:
@@ -539,8 +544,8 @@ types/
 Do not place unrelated functionality into generic files such as:
 
 ```text
-utils.py
-helpers.py
+Utils.java
+Helpers.java
 common.ts
 ```
 
@@ -603,37 +608,7 @@ External service integrations should use dedicated clients or providers.
 
 ---
 
-# 21. AI Integration Standards
-
-AI functionality must be isolated behind an abstraction.
-
-Use:
-
-```text
-LLMProvider
-└── MockLLMProvider
-```
-
-Business logic should depend on:
-
-```text
-LLMProvider
-```
-
-not a concrete external AI SDK.
-
-This allows:
-
-- Unit testing
-- Mocking
-- Provider replacement
-- Offline development
-
-Never place an API key in frontend code.
-
----
-
-# 22. Database Standards
+# 21. Database Standards
 
 Database access must be separated from business logic.
 
@@ -653,7 +628,7 @@ Use transactions when multiple related database operations must succeed or fail 
 
 ---
 
-# 23. Redis Standards
+# 22. Redis Standards
 
 Redis should be accessed through a dedicated abstraction or service.
 
@@ -668,7 +643,7 @@ Do not make Redis the source of truth for persistent business data unless explic
 
 ---
 
-# 24. Testing
+# 23. Testing
 
 Every significant feature should have tests.
 
@@ -678,23 +653,17 @@ Prioritize:
 2. API behavior
 3. Validation
 4. Error handling
-5. AI provider abstraction
+5. Notification/email provider abstraction
 
 Tests should be deterministic.
 
-Do not depend on real external AI APIs for normal unit tests.
+Do not depend on real external services (e.g. live SMTP delivery) for normal unit tests.
 
-Use:
-
-```text
-MockLLMProvider
-```
-
-for AI tests.
+Use a mocked `JavaMailSender` or fake SMTP server for notification tests.
 
 ---
 
-# 25. Testability
+# 24. Testability
 
 Write code that is easy to test.
 
@@ -703,22 +672,22 @@ Prefer dependency injection over hard-coded dependencies.
 Good:
 
 ```text
-ChatService
+OrderService
     ↓
-LLMProvider
+NotificationProvider
 ```
 
 The test can provide:
 
 ```text
-MockLLMProvider
+MockNotificationProvider
 ```
 
 instead of the real provider.
 
 ---
 
-# 26. Performance
+# 25. Performance
 
 Do not prematurely optimize.
 
@@ -739,17 +708,17 @@ For expensive operations:
 
 ---
 
-# 27. Git Standards
+# 26. Git Standards
 
 Use small and meaningful commits.
 
 Recommended format:
 
 ```text
-feat: add AI chat endpoint
+feat: add order creation endpoint
 fix: resolve Redis connection issue
-test: add chat service tests
-refactor: simplify AI provider
+test: add order service tests
+refactor: simplify notification provider
 docs: update project setup
 chore: update dependencies
 ```
@@ -767,7 +736,7 @@ IDE-specific temporary files
 
 ---
 
-# 28. Code Review Rules
+# 27. Code Review Rules
 
 Before considering code complete, verify:
 
@@ -784,7 +753,7 @@ Before considering code complete, verify:
 
 ---
 
-# 29. Definition of Done
+# 28. Definition of Done
 
 Code is considered complete only when:
 
@@ -802,7 +771,7 @@ Code is considered complete only when:
 
 ---
 
-# 30. Priority Rules
+# 29. Priority Rules
 
 When rules conflict, follow this priority:
 

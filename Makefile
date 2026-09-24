@@ -14,8 +14,11 @@ restart:
 logs:
 	podman compose logs -f
 
-logs-backend:
-	podman compose logs -f backend
+logs-gateway:
+	podman compose logs -f cds-gateway-service
+
+logs-orch:
+	podman compose logs -f cds-orch-service
 
 ps:
 	podman compose ps

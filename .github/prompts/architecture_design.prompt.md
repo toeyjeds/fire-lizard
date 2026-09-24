@@ -25,48 +25,54 @@ Create:
 2. System Context
 3. Component Architecture
 4. Frontend Architecture
-5. Backend Architecture
+5. Backend Architecture (`cds-gateway-service`, `cds-orch-service`)
 6. API Design
-7. Database Design
+7. Database Design (SQL Server)
 8. Redis Usage
-9. AI / LLM Architecture
-10. External Integrations
-11. Security Considerations
-12. Error Handling Strategy
-13. Container Architecture
-14. Environment Configuration
-15. Project Structure
-16. Technical Decisions and Rationale
-17. Risks and Trade-offs
-18. Implementation Order
+9. Email / SMTP Architecture
+10. Azure AAD Integration
+11. External Integrations
+12. Security Considerations
+13. Error Handling Strategy
+14. Container Architecture
+15. Environment Configuration
+16. Project Structure
+17. Technical Decisions and Rationale
+18. Risks and Trade-offs
+19. Implementation Order
 
 ## Required Architecture
 
 Use the existing project architecture unless the requirement explicitly requires a change:
 
 ```text
-Next.js Frontend
-        |
-        | REST API
-        v
-FastAPI Backend
-   |         |         |
-   v         v         v
-PostgreSQL  Redis   AI Provider
-                       |
-                 OpenAI / Mock
+                 Next.js Frontend
+                        │
+                        │ REST API
+                        ▼
+              cds-gateway-service
+        (rate limit, routing, auth,
+         field mapping, masking,
+           input/output validation)
+                        │
+                        ▼
+               cds-orch-service
+        (business logic, orchestration)
+                        │
+         ┌──────────────┼──────────────┐
+         ▼              ▼              ▼
+    SQL Server         SMTP        Azure AAD
 ```
 
 Backend dependency flow:
 
 ```text
-API -> Service -> Repository -> Database
-API -> Service -> AI Service -> LLM Provider -> External AI API
+Controller -> Service -> Repository -> Database   (cds-orch-service only)
 ```
 
 ## Rules
 
-- Prefer a modular monolith for Hackathon scope.
+- Keep the two-service backend (`cds-gateway-service`, `cds-orch-service`).
 - Do not introduce unnecessary microservices.
 - Respect existing coding standards and architecture.
 - Every API must identify request, response, validation, and error behavior.

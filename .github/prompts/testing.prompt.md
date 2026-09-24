@@ -1,3 +1,4 @@
+
 # Testing Prompt
 
 Act as the QA / Test Engineer for this project.
@@ -20,16 +21,18 @@ Verify that the implementation satisfies the approved requirements and works as 
 
 ### Backend
 
-Test:
+Test per service (`cds-gateway-service`, `cds-orch-service`):
 
 - Health endpoint
 - Request validation
 - Response schema
 - Business rules
 - Service behavior
-- Repository behavior where applicable
-- AI provider abstraction
-- Mock AI provider
+- Repository behavior where applicable (`cds-orch-service`)
+- Rate limit enforcement (`cds-gateway-service`)
+- Field mapping and masking (`cds-gateway-service`)
+- Notification/email sending (mocked `JavaMailSender` or fake SMTP server)
+- Azure AAD token acquisition/validation (mocked, never the real tenant)
 - Error handling
 
 ### Frontend
@@ -52,8 +55,9 @@ Verify:
 - Podman Compose configuration
 - Container startup
 - Container networking
-- PostgreSQL connectivity
+- SQL Server connectivity
 - Redis connectivity
+- SMTP relay connectivity (local dev/test)
 - Environment configuration
 
 ## Commands
@@ -73,8 +77,9 @@ Verify:
 
 ```text
 http://localhost:3000
-http://localhost:8000
-http://localhost:8000/docs
+http://localhost:8080
+http://localhost:8082
+http://localhost:8082/swagger-ui.html
 ```
 
 ## Defect Handling

@@ -1,16 +1,20 @@
-# AI Hackathon Demo
+# Cash Delivery Service (CDS) Demo
 
-A lightweight full-stack AI demo app built with Next.js, FastAPI, PostgreSQL, Redis, and a mock LLM provider. The app is designed to be easy to run with Podman and straightforward to extend for hackathon demos or future AI integrations.
+> **CDS** stands for **Cash Delivery Service** — the name behind the `cds-gateway-service` and `cds-orch-service` backend services.
+
+A lightweight full-stack demo app built with Next.js, two Java Spring Boot services (gateway, orchestration), SQL Server, and Redis. The app is designed to be easy to run with Podman and straightforward to extend for hackathon demos.
 
 ## Project Overview
 
 The app includes:
 
-- A Next.js frontend for a simple chat experience
-- A FastAPI backend with a health check and AI chat endpoint
-- PostgreSQL as the primary data store
-- Redis for temporary/shared state
-- A pluggable AI provider abstraction with a mock provider for offline development
+- A Next.js frontend
+- `cds-gateway-service` — Spring Boot API gateway with rate limiting, routing, field mapping, masking, and input/output validation
+- `cds-orch-service` — Spring Boot orchestration service owning business logic, SQL Server access, email notifications, and Azure AAD authentication
+- SQL Server as the primary data store
+- Redis for temporary/shared state and rate limiting
+- A local SMTP relay (MailHog) for email notifications during development
+- Azure AAD (Entra ID) as the external identity provider for `cds-orch-service`
 
 ## Architecture
 
@@ -24,33 +28,36 @@ The app includes:
                                │ REST API
                                ▼
                     ┌─────────────────────┐
-                    │      FastAPI        │
-                    │      Backend        │
-                    │       :8000         │
+                    │  cds-gateway-service │
+                    │  (rate limit, route, │
+                    │  mapping, masking)    │
+                    │       :8080          │
+                    └──────────┬──────────┘
+                               ▼
+                    ┌─────────────────────┐
+                    │  cds-orch-service    │
+                    │ (business logic)     │
+                    │       :8082          │
                     └──────┬───────┬──────┘
                            │       │
                   ┌────────▼──┐ ┌──▼────────┐
-                  │ PostgreSQL│ │   Redis   │
-                  │   :5432   │ │   :6379   │
+                  │ SQL Server│ │   Redis   │
+                  │   :1433   │ │   :6379   │
                   └───────────┘ └───────────┘
-                           │
-                           ▼
-                    ┌─────────────────────┐
-                    │     AI / LLM API    │
-                    │   External Provider  │
-                    └─────────────────────┘
 ```
+
+The orchestration service also sends email notifications through a local SMTP relay (MailHog at `:1025`/`:8025`) during development.
 
 ## Tech Stack
 
 - Next.js
 - TypeScript
-- FastAPI
-- Python
-- PostgreSQL
+- Java 17
+- Spring Boot
+- SQL Server
 - Redis
+- SMTP (JavaMailSender)
 - Podman
-- LLM API abstraction
 
 ## Requirements
 
@@ -81,8 +88,9 @@ podman ps
 ## URLs
 
 - Frontend: http://localhost:3000
-- Backend: http://localhost:8000
-- Swagger: http://localhost:8000/docs
+- Gateway: http://localhost:8080
+- Orchestration: http://localhost:8082
+- Swagger (orchestration): http://localhost:8082/swagger-ui.html
 
 ## Stop
 
@@ -92,9 +100,10 @@ podman compose down
 
 ## Testing
 
-Run the backend test suite with:
+Run each backend service's test suite with:
 
 ```bash
-cd backend
-python -m pytest
+cd cds-gateway-service && ./mvnw test
+cd cds-orch-service && ./mvnw test
 ```
+

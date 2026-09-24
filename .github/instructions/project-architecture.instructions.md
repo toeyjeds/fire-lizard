@@ -2,17 +2,17 @@
 applyTo: "**"
 description: Project architecture rules for the AI Hackathon application
 ---
-
 # Project Architecture Instructions
+
+> **CDS** stands for **Cash Delivery Service**. The two backend services (`cds-gateway-service`, `cds-orch-service`) together implement the Cash Delivery Service domain.
 
 ## Objective
 
-Build a maintainable, production-ready AI Hackathon application using a modular monolithic architecture.
+Build a maintainable, production-ready application composed of two independently deployable Java Spring Boot services (gateway, orchestration) plus a Next.js frontend.
 
 Prioritize:
 
-- Simplicity
-- Scalability
+- Clear separation of concerns (gateway / orchestration)
 - Clean Architecture
 - SOLID principles
 - Podman compatibility
@@ -34,79 +34,93 @@ Always follow this architecture.
                         │
                         │ REST API
                         ▼
-                FastAPI Backend
+              cds-gateway-service
+        (rate limit, routing, auth,
+         field mapping, masking,
+           input/output validation)
                         │
-          ┌─────────────┼─────────────┐
-          │             │             │
-          ▼             ▼             ▼
-     PostgreSQL      Redis      AI Provider
-                                      │
-                                      ▼
-                                Mock LLM
+                        ▼
+               cds-orch-service
+        (business logic, orchestration)
+                        │
+         ┌──────────────┼──────────────┐
+         ▼              ▼              ▼
+    SQL Server         SMTP        Azure AAD
 ```
 
-There are only four primary services:
+There are six primary services:
 
 - frontend
-- backend
-- postgres
+- cds-gateway-service
+- cds-orch-service
+- sqlserver
 - redis
+- smtp (local dev relay, e.g. MailHog)
 
-Do not introduce unnecessary microservices.
+Azure AAD (Entra ID) is an external identity provider, not a containerized service.
+
+Do not introduce microservices beyond these two backend services without justification.
+
+---
+
+# Service Responsibilities
+
+## cds-gateway-service
+
+- Single entry point for all frontend requests.
+- Applies rate limiting per client/route.
+- Handles authentication/authorization at the edge.
+- Maps and transforms request/response fields for frontend consumption.
+- Masks sensitive fields before returning data to the frontend.
+- Validates input and output payloads.
+- Routes requests to `cds-orch-service`.
+- Must never contain business logic and must never access the database directly.
+
+## cds-orch-service
+
+- Owns business logic and orchestration.
+- Coordinates domain services and external APIs.
+- Authenticates against Azure AAD (Entra ID) via OAuth2/OIDC for secured integrations.
+- The only service allowed to access SQL Server, Redis, and the SMTP relay.
+- Exposes internal APIs consumed by `cds-gateway-service`.
 
 ---
 
 # Layered Architecture
 
-The backend must always follow this dependency flow.
+Each backend service must follow this dependency flow internally.
 
 ```text
-API
+Controller
  ↓
 Service
  ↓
-Repository
+Repository   (cds-orch-service only)
  ↓
 Database
 ```
 
-For AI features:
-
-```text
-API
- ↓
-Service
- ↓
-AI Service
- ↓
-LLM Provider
- ↓
-External AI API
-```
-
 Rules:
 
-- Routes must never contain business logic.
+- Controllers must never contain business logic.
 - Services contain business rules.
-- Repositories only access data.
-- Providers communicate with external AI services.
+- Repositories only access data and exist only in `cds-orch-service`.
 
 ---
 
 # Backend Structure
 
-Use this folder structure.
+Use this folder structure for each Java service.
 
 ```text
-backend/app/
-├── api/
-├── core/
-├── db/
-├── models/
-├── schemas/
-├── repositories/
-├── services/
-└── ai/
+<service-name>/src/main/java/.../
+├── api/            (controllers)
+├── config/
+├── dto/
+├── service/
+├── repository/     (cds-orch-service only)
+├── model/          (cds-orch-service only)
+└── mapper/         (cds-gateway-service only)
 ```
 
 Responsibilities:
@@ -114,14 +128,13 @@ Responsibilities:
 | Folder | Responsibility |
 |---------|----------------|
 | api | HTTP endpoints |
-| schemas | Request/Response models |
-| services | Business logic |
-| repositories | Database access |
-| db | Database & Redis connection |
-| ai | AI abstraction layer |
-| core | Config & logging |
+| dto | Request/Response models |
+| service | Business logic |
+| repository | Database access (`cds-orch-service` only) |
+| mapper | Field mapping & masking (`cds-gateway-service` only) |
+| config | Framework & security configuration |
 
-Never mix responsibilities.
+Never mix responsibilities across services (e.g. do not add a repository to `cds-gateway-service`).
 
 ---
 
@@ -148,28 +161,11 @@ Do not call `fetch()` directly inside large UI components.
 
 ---
 
-# AI Provider Pattern
-
-Always use provider abstraction.
-
-```text
-LLMProvider
-├── MockLLMProvider
-```
-
-The Service layer depends only on `LLMProvider`.
-
-Never couple business logic directly to a concrete external SDK.
-
-The mock provider is the only supported provider and allows the application to run fully offline without any API key.
-
----
-
 # Database Rules
 
 Primary database:
 
-- PostgreSQL
+- SQL Server (Microsoft JDBC Driver, Hibernate `SQLServerDialect`)
 
 Cache:
 
@@ -177,35 +173,62 @@ Cache:
 
 Rules:
 
-- Use SQLAlchemy ORM
+- Only `cds-orch-service` may connect to SQL Server and Redis.
+- Use Spring Data JPA
 - Repository handles persistence
 - Service handles business rules
-- Never create SQL inside route handlers
+- Never create SQL inside controllers
 
 Redis usage:
 
 - Cache
 - Temporary state
 - Session-like data
-- Rate limiting
+- Rate limiting (`cds-gateway-service` reads/writes via its own Redis connection)
 
 Do not use Redis as the primary database.
 
 ---
 
+# Email / SMTP Rules
+
+- Only `cds-orch-service` may send email; other services must never connect to SMTP directly.
+- Send email through a `NotificationService` abstraction backed by Spring Boot's `JavaMailSender`, not inline in controllers or repositories.
+- Externalize SMTP host, port, credentials, and sender address via environment variables.
+- Never log SMTP credentials or full email bodies containing sensitive data.
+- Use a fake/local SMTP relay (e.g. MailHog) for local development and automated tests; never send real email during tests.
+
+---
+
+# Authentication / Azure AAD Rules
+
+- Only `cds-orch-service` may authenticate directly against Azure AAD (Entra ID); other services must not hold AAD credentials.
+- Use OAuth2 client credentials flow (Spring Security `oauth2Client` / MSAL4J) for service-to-service calls that require an Azure AAD token.
+- Validate inbound tokens using Spring Security's OAuth2 resource server support against the tenant's JWKS endpoint.
+- Externalize tenant ID, client ID, client secret, and authority URL via environment variables. Never hard-code them.
+- Never log access tokens, refresh tokens, or client secrets.
+- Use a test double or mocked token provider for automated tests; never call the real Azure AAD tenant during tests.
+
+---
+
 # API Standards
 
-Base path:
+Base path per service:
 
 ```text
 /api/v1
 ```
 
-Required endpoints:
+Required endpoints (both services):
 
 ```text
 GET  /health
-POST /ai/chat
+```
+
+Business endpoint example (owned by `cds-orch-service`, exposed to the frontend through `cds-gateway-service`):
+
+```text
+POST /api/v1/orders
 ```
 
 Response format:
@@ -231,7 +254,7 @@ Error
 }
 ```
 
-Keep response formats consistent.
+Keep response formats consistent across both services.
 
 ---
 
@@ -242,14 +265,28 @@ Never hard-code configuration.
 Required variables:
 
 ```env
-POSTGRES_DB=
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_HOST=
-POSTGRES_PORT=
+SQLSERVER_DB=
+SQLSERVER_USER=
+SQLSERVER_PASSWORD=
+SQLSERVER_HOST=
+SQLSERVER_PORT=
 
 REDIS_HOST=
 REDIS_PORT=
+
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM_ADDRESS=
+
+AZURE_AAD_TENANT_ID=
+AZURE_AAD_CLIENT_ID=
+AZURE_AAD_CLIENT_SECRET=
+AZURE_AAD_AUTHORITY=
+
+GATEWAY_RATE_LIMIT_PER_SECOND=
+ORCH_SERVICE_URL=
 
 NEXT_PUBLIC_API_URL=
 ```
@@ -267,20 +304,21 @@ Use service names instead of localhost.
 Correct:
 
 ```text
-postgres:5432
+sqlserver:1433
 redis:6379
-backend:8000
+cds-gateway-service:8080
+cds-orch-service:8082
 ```
 
 Incorrect:
 
 ```text
-localhost:5432
+localhost:1433
 ```
 
 Use one shared network.
 
-Persist PostgreSQL using a named volume.
+Persist SQL Server using a named volume.
 
 ---
 
@@ -292,10 +330,10 @@ Allowed dependency direction:
 Frontend
     │
     ▼
-Backend API
+cds-gateway-service
     │
     ▼
-Service
+cds-orch-service
     │
     ▼
 Repository
@@ -306,23 +344,27 @@ Database
 
 Forbidden:
 
-- Repository calling Service
-- Database calling API
-- Components accessing Database
-- Routes accessing Database directly
+- `cds-gateway-service` accessing the database directly.
+- `cds-gateway-service` containing business logic.
+- Repository calling Service.
+- Database calling API.
+- Components accessing Database.
+- Routes accessing Database directly.
 
 ---
 
 # Error Handling
 
-Centralize exception handling.
+Centralize exception handling per service.
 
 Requirements:
 
 - Validation errors
 - Business errors
-- AI provider errors
 - Database errors
+- Email/SMTP delivery errors
+- Azure AAD authentication errors
+- Rate limit exceeded errors (`cds-gateway-service`)
 
 Never expose:
 
@@ -339,33 +381,31 @@ Log:
 
 - Request
 - Response status
-- AI failures
 - Database failures
+- Email/SMTP delivery failures
+- Rate limit rejections (`cds-gateway-service`)
 
 Do not log:
 
 - Secrets
 - Tokens
 - Passwords
-- Personal sensitive data
+- Personal sensitive data (mask before logging)
 
 ---
 
 # Testing Architecture
 
-Tests mirror the application structure.
+Tests mirror each service's structure.
 
 ```text
-tests/
+<service-name>/src/test/java/.../
 ├── api/
-├── services/
-├── repositories/
-└── ai/
+├── service/
+└── repository/     (cds-orch-service only)
 ```
 
-The MockLLMProvider must be used during automated tests.
-
-Tests must not require any external LLM API key.
+Tests must not require any external service credentials.
 
 ---
 
@@ -374,13 +414,14 @@ Tests must not require any external LLM API key.
 A feature is complete only when:
 
 - [ ] Architecture follows this document.
-- [ ] Business logic is inside Services.
-- [ ] Database access is inside Repositories.
-- [ ] AI uses Provider abstraction.
+- [ ] Business logic is inside Services (`cds-orch-service`).
+- [ ] Database access is inside Repositories (`cds-orch-service` only).
+- [ ] Field mapping, masking, and validation live in `cds-gateway-service`.
+- [ ] Rate limiting is enforced in `cds-gateway-service`.
 - [ ] Frontend uses Service layer for API calls.
 - [ ] Environment variables are externalized.
 - [ ] Podman Compose builds successfully.
 - [ ] All containers start successfully.
-- [ ] Health endpoint returns UP.
+- [ ] Health endpoint returns UP for both services.
 - [ ] Swagger is accessible.
 - [ ] Tests pass.

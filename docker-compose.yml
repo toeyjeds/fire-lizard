@@ -1,19 +1,19 @@
 version: "3.9"
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: fire-lizard-postgres
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: fire-lizard-sqlserver
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SQLSERVER_PASSWORD}
+      MSSQL_PID: Express
     ports:
-      - "5432:5432"
+      - "1433:1433"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - sqlserver_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -33,27 +33,64 @@ services:
     networks:
       - ai-network
 
-  backend:
+  smtp:
+    image: mailhog/mailhog:latest
+    container_name: fire-lizard-smtp
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - ai-network
+
+  cds-orch-service:
     build:
-      context: ./backend
-    container_name: fire-lizard-backend
+      context: ./cds-orch-service
+    container_name: fire-lizard-orch-service
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: ${POSTGRES_PORT}
+      SQLSERVER_DB: ${SQLSERVER_DB}
+      SQLSERVER_USER: ${SQLSERVER_USER}
+      SQLSERVER_PASSWORD: ${SQLSERVER_PASSWORD}
+      SQLSERVER_HOST: ${SQLSERVER_HOST}
+      SQLSERVER_PORT: ${SQLSERVER_PORT}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+      AZURE_AAD_TENANT_ID: ${AZURE_AAD_TENANT_ID}
+      AZURE_AAD_CLIENT_ID: ${AZURE_AAD_CLIENT_ID}
+      AZURE_AAD_CLIENT_SECRET: ${AZURE_AAD_CLIENT_SECRET}
+      AZURE_AAD_AUTHORITY: ${AZURE_AAD_AUTHORITY}
     depends_on:
-      postgres:
+      sqlserver:
         condition: service_healthy
       redis:
         condition: service_healthy
+      smtp:
+        condition: service_started
     ports:
-      - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      - "8082:8082"
+    networks:
+      - ai-network
+
+  cds-gateway-service:
+    build:
+      context: ./cds-gateway-service
+    container_name: fire-lizard-gateway-service
+    environment:
+      ORCH_SERVICE_URL: http://cds-orch-service:8082
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      GATEWAY_RATE_LIMIT_PER_SECOND: ${GATEWAY_RATE_LIMIT_PER_SECOND}
+    depends_on:
+      cds-orch-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
     networks:
       - ai-network
 
@@ -64,14 +101,15 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     depends_on:
-      - backend
+      - cds-gateway-service
     ports:
       - "3000:3000"
     networks:
       - ai-network
 
+
 volumes:
-  postgres_data:
+  sqlserver_data:
 
 networks:
   ai-network:
