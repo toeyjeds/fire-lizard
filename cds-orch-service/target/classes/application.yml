@@ -1,0 +1,17 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:sqlserver://${SQLSERVER_HOST:sqlserver}:${SQLSERVER_PORT:1433};databaseName=${SQLSERVER_DB:master};encrypt=true;trustServerCertificate=true
+    username: ${SQLSERVER_USER:sa}
+    password: ${SQLSERVER_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+  mail:
+    host: ${SMTP_HOST:smtp}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    from: ${SMTP_FROM_ADDRESS:no-reply@cash-delivery-service.local}

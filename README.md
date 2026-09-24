@@ -2,7 +2,7 @@
 
 > **CDS** stands for **Cash Delivery Service** — the name behind the `cds-gateway-service` and `cds-orch-service` backend services.
 
-A lightweight full-stack demo app built with Next.js, two Java Spring Boot services (gateway, orchestration), SQL Server, and Redis. The app is designed to be easy to run with Podman and straightforward to extend for hackathon demos.
+A lightweight full-stack demo app built with Next.js, two Java Spring Boot services (gateway and orchestration), SQL Server, and SMTP. The app is designed to be easy to run with Podman and straightforward to extend for hackathon demos.
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ The app includes:
 - `cds-gateway-service` — Spring Boot API gateway with rate limiting, routing, field mapping, masking, and input/output validation
 - `cds-orch-service` — Spring Boot orchestration service owning business logic, SQL Server access, email notifications, and Azure AAD authentication
 - SQL Server as the primary data store
-- Redis for temporary/shared state and rate limiting
+- In-memory rate limiting at the gateway
 - A local SMTP relay (MailHog) for email notifications during development
 - Azure AAD (Entra ID) as the external identity provider for `cds-orch-service`
 
@@ -39,11 +39,11 @@ The app includes:
                     │ (business logic)     │
                     │       :8082          │
                     └──────┬───────┬──────┘
-                           │       │
-                  ┌────────▼──┐ ┌──▼────────┐
-                  │ SQL Server│ │   Redis   │
-                  │   :1433   │ │   :6379   │
-                  └───────────┘ └───────────┘
+                           │
+                  ┌────────▼──┐
+                  │ SQL Server│
+                  │   :1433   │
+                  └───────────┘
 ```
 
 The orchestration service also sends email notifications through a local SMTP relay (MailHog at `:1025`/`:8025`) during development.
@@ -55,7 +55,6 @@ The orchestration service also sends email notifications through a local SMTP re
 - Java 17
 - Spring Boot
 - SQL Server
-- Redis
 - SMTP (JavaMailSender)
 - Podman
 
@@ -103,7 +102,7 @@ podman compose down
 Run each backend service's test suite with:
 
 ```bash
-cd cds-gateway-service && ./mvnw test
-cd cds-orch-service && ./mvnw test
+cd cds-gateway-service && mvn test
+cd cds-orch-service && mvn test
 ```
 
