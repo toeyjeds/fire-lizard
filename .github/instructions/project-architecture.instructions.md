@@ -54,7 +54,6 @@ There are six primary services:
 - cds-gateway-service
 - cds-orch-service
 - sqlserver
-- redis
 - smtp (local dev relay, e.g. MailHog)
 
 Azure AAD (Entra ID) is an external identity provider, not a containerized service.
@@ -81,7 +80,7 @@ Do not introduce microservices beyond these two backend services without justifi
 - Owns business logic and orchestration.
 - Coordinates domain services and external APIs.
 - Authenticates against Azure AAD (Entra ID) via OAuth2/OIDC for secured integrations.
-- The only service allowed to access SQL Server, Redis, and the SMTP relay.
+- The only service allowed to access SQL Server and the SMTP relay.
 - Exposes internal APIs consumed by `cds-gateway-service`.
 
 ---
@@ -167,26 +166,15 @@ Primary database:
 
 - SQL Server (Microsoft JDBC Driver, Hibernate `SQLServerDialect`)
 
-Cache:
-
-- Redis
-
 Rules:
 
-- Only `cds-orch-service` may connect to SQL Server and Redis.
+- Only `cds-orch-service` may connect to SQL Server.
 - Use Spring Data JPA
 - Repository handles persistence
 - Service handles business rules
 - Never create SQL inside controllers
 
-Redis usage:
-
-- Cache
-- Temporary state
-- Session-like data
-- Rate limiting (`cds-gateway-service` reads/writes via its own Redis connection)
-
-Do not use Redis as the primary database.
+Do not add Redis dependencies, configuration, or network connections. Gateway rate limiting must use an in-memory mechanism.
 
 ---
 
@@ -271,9 +259,6 @@ SQLSERVER_PASSWORD=
 SQLSERVER_HOST=
 SQLSERVER_PORT=
 
-REDIS_HOST=
-REDIS_PORT=
-
 SMTP_HOST=
 SMTP_PORT=
 SMTP_USERNAME=
@@ -305,7 +290,6 @@ Correct:
 
 ```text
 sqlserver:1433
-redis:6379
 cds-gateway-service:8080
 cds-orch-service:8082
 ```

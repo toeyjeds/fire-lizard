@@ -42,7 +42,7 @@ Controller
  ├── Validate request
  ├── Business logic
  ├── Database query
- ├── Redis operation
+ ├── In-memory state operation
  └── External API call
 ```
 
@@ -628,18 +628,9 @@ Use transactions when multiple related database operations must succeed or fail 
 
 ---
 
-# 22. Redis Standards
+# 22. Redis
 
-Redis should be accessed through a dedicated abstraction or service.
-
-Use Redis for:
-
-- Cache
-- Temporary data
-- Rate limiting
-- Session-like state
-
-Do not make Redis the source of truth for persistent business data unless explicitly required.
+Do not add Redis dependencies, configuration, or network connections unless the project requirements explicitly change.
 
 ---
 
@@ -716,7 +707,7 @@ Recommended format:
 
 ```text
 feat: add order creation endpoint
-fix: resolve Redis connection issue
+fix: resolve rate limit configuration issue
 test: add order service tests
 refactor: simplify notification provider
 docs: update project setup

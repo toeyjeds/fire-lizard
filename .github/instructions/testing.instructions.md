@@ -25,7 +25,7 @@ Use:
 - JUnit 5
 - Mockito
 - Spring Boot Test (`@SpringBootTest`, `@WebMvcTest`)
-- Testcontainers (SQL Server, Redis) for `cds-orch-service` integration tests
+- Testcontainers (SQL Server) for `cds-orch-service` integration tests
 - A fake/local SMTP server (e.g. GreenMail or MailHog) for `cds-orch-service` email tests — never send real email during tests
 
 Test per service:

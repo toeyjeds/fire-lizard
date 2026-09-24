@@ -18,7 +18,6 @@ Use:
 - MapStruct (`cds-gateway-service` field mapping)
 - Spring Data JPA (`cds-orch-service`)
 - SQL Server (Microsoft JDBC Driver, Hibernate `SQLServerDialect`)
-- Redis
 - Spring Boot Starter Mail / `JavaMailSender` (`cds-orch-service` SMTP notifications)
 - Spring Security OAuth2 Resource Server / MSAL4J (`cds-orch-service` Azure AAD integration)
 - Maven
@@ -29,7 +28,7 @@ Use:
 ### cds-gateway-service
 
 - Single entry point for all frontend requests.
-- Applies rate limiting (Resilience4j `RateLimiter` or Spring Cloud Gateway `RequestRateLimiter` backed by Redis).
+- Applies rate limiting with Resilience4j in application memory.
 - Handles authentication/authorization at the edge.
 - Maps and transforms fields between frontend DTOs and orchestration DTOs (MapStruct mappers).
 - Masks sensitive fields (e.g. national ID, phone number, email) before returning data to the frontend.
@@ -42,9 +41,11 @@ Use:
 - Owns business logic and orchestration.
 - Coordinates domain services and external APIs.
 - Authenticates against Azure AAD (Entra ID) via OAuth2/OIDC for secured integrations.
-- The only service allowed to access SQL Server, Redis, and the SMTP relay.
+- The only service allowed to access SQL Server and the SMTP relay.
 - Sends transactional email/notifications via a `NotificationService` backed by `JavaMailSender`.
 - Exposes internal APIs consumed by `cds-gateway-service`.
+
+Do not add Redis dependencies, configuration, or network connections to either service.
 
 ## Project Architecture
 
