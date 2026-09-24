@@ -42,7 +42,7 @@ Always follow this architecture.
      PostgreSQL      Redis      AI Provider
                                       │
                                       ▼
-                              OpenAI / Mock
+                                Mock LLM
 ```
 
 There are only four primary services:
@@ -154,27 +154,14 @@ Always use provider abstraction.
 
 ```text
 LLMProvider
-├── OpenAIProvider
-└── MockLLMProvider
+├── MockLLMProvider
 ```
 
 The Service layer depends only on `LLMProvider`.
 
-Never couple business logic directly to OpenAI SDK.
+Never couple business logic directly to a concrete external SDK.
 
-Provider selection comes from:
-
-```env
-AI_PROVIDER=openai
-```
-
-or
-
-```env
-AI_PROVIDER=mock
-```
-
-The mock provider must allow the application to run without internet access.
+The mock provider is the only supported provider and allows the application to run fully offline without any API key.
 
 ---
 
@@ -255,9 +242,6 @@ Never hard-code configuration.
 Required variables:
 
 ```env
-OPENAI_API_KEY=
-AI_PROVIDER=mock
-
 POSTGRES_DB=
 POSTGRES_USER=
 POSTGRES_PASSWORD=
@@ -381,7 +365,7 @@ tests/
 
 The MockLLMProvider must be used during automated tests.
 
-Tests must not require a real OpenAI API key.
+Tests must not require any external LLM API key.
 
 ---
 

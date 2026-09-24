@@ -18,8 +18,8 @@ Lumen is a lightweight AI workspace for turning an unfinished thought into a cle
                   +-------------+                             +-------------+
                                                |
                                       +--------v---------+
-                                      | Mock / OpenAI    |
-                                      | LLM provider     |
+                                      | Mock LLM         |
+                                      | provider         |
                                       +------------------+
 ```
 
@@ -29,7 +29,7 @@ Lumen is a lightweight AI workspace for turning an unfinished thought into a cle
 - FastAPI, Pydantic, SQLAlchemy, Python 3.12
 - PostgreSQL and Redis
 - Podman Compose
-- Mock or OpenAI-compatible LLM provider
+- Mock LLM provider (no external API required)
 
 ## Requirements
 
@@ -43,7 +43,7 @@ Lumen is a lightweight AI workspace for turning an unfinished thought into a cle
 cp .env.example .env
 ```
 
-The default `AI_PROVIDER=mock` runs without an API key. To use OpenAI, set `AI_PROVIDER=openai` and provide `OPENAI_API_KEY`.
+The application always uses the built-in mock LLM provider and runs fully offline without any API key.
 
 ## Run
 
@@ -85,7 +85,7 @@ python -m pip install -r requirements.txt
 python -m pytest
 ```
 
-Tests use the mock provider and do not require a real LLM API key.
+Tests use the mock provider and never require an external LLM API key.
 
 ## Project Layout
 

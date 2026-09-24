@@ -66,7 +66,6 @@ Example:
 
 ```text
 LLMProvider
-├── OpenAIProvider
 ├── MockLLMProvider
 └── FutureProvider
 ```
@@ -82,12 +81,10 @@ Example:
 ```text
 LLMProvider
     ↓
-OpenAIProvider
-    ↓
 MockLLMProvider
 ```
 
-Both providers should follow the same contract.
+All providers should follow the same contract.
 
 ---
 
@@ -110,14 +107,10 @@ Service
   ↓
 LLMProvider
   ↓
-OpenAIProvider
+MockLLMProvider
 ```
 
-Do not make business logic directly depend on:
-
-```text
-OpenAI SDK
-```
+Do not make business logic directly depend on a concrete external SDK.
 
 ---
 
@@ -160,7 +153,7 @@ Good:
 getUserProfile()
 createChatSession()
 validateChatRequest()
-OpenAIProvider
+MockLLMProvider
 ChatService
 UserRepository
 ```
@@ -343,13 +336,13 @@ Never put secrets directly into source code.
 Bad:
 
 ```python
-OPENAI_API_KEY = "sk-xxxxxxxx"
+DATABASE_PASSWORD = "hardcoded-secret"
 ```
 
 Good:
 
 ```python
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
 ```
 
 Use environment variables or a secure secret-management mechanism.
@@ -618,7 +611,6 @@ Use:
 
 ```text
 LLMProvider
-├── OpenAIProvider
 └── MockLLMProvider
 ```
 
@@ -628,11 +620,7 @@ Business logic should depend on:
 LLMProvider
 ```
 
-not:
-
-```text
-OpenAI SDK
-```
+not a concrete external AI SDK.
 
 This allows:
 

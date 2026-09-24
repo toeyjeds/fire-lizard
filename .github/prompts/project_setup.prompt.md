@@ -43,7 +43,7 @@ Prioritize simplicity, maintainability, clean architecture, and fast development
 
 ## AI
 
-The application must support integration with an external LLM API.
+The application must support a pluggable LLM provider abstraction that runs fully offline using a mock provider.
 
 Design the AI layer so that the provider can be replaced without modifying the business logic.
 
@@ -53,20 +53,11 @@ Example:
 AIService
     ↓
 LLMProvider
-    ├── OpenAIProvider
     ├── MockLLMProvider
     └── FutureProvider
 ```
 
-The API key must NEVER be hard-coded.
-
-Use:
-
-```text
-OPENAI_API_KEY
-```
-
-from environment variables.
+Any API key used by a future provider must NEVER be hard-coded and must come from environment variables.
 
 ---
 
@@ -164,7 +155,6 @@ ai-hackathon/
 │   │   │   ├── base.py
 │   │   │   ├── service.py
 │   │   │   └── providers/
-│   │   │       ├── openai.py
 │   │   │       └── mock.py
 │   │   │
 │   │   └── db/
@@ -291,25 +281,10 @@ class LLMProvider:
 Implement:
 
 ```text
-OpenAIProvider
 MockLLMProvider
 ```
 
-The application should be able to switch between providers using configuration.
-
-Example:
-
-```text
-AI_PROVIDER=openai
-```
-
-or:
-
-```text
-AI_PROVIDER=mock
-```
-
-The mock provider is required so that the application can run without an API key during development/demo preparation.
+The mock provider is the only supported provider and must allow the application to run fully offline without an API key during development/demo preparation.
 
 ---
 
@@ -428,10 +403,6 @@ Provide:
 Example:
 
 ```env
-OPENAI_API_KEY=
-
-AI_PROVIDER=mock
-
 POSTGRES_DB=ai_app
 POSTGRES_USER=hackathon
 POSTGRES_PASSWORD=password
@@ -650,7 +621,7 @@ At minimum test:
 4. API validation
 5. Error handling
 
-The test suite must not require a real OpenAI API key.
+The test suite must not require any external LLM API key.
 
 ---
 
@@ -725,7 +696,6 @@ AI providers must be replaceable:
 
 ```text
 LLMProvider
-├── OpenAIProvider
 ├── MockLLMProvider
 └── FutureProvider
 ```

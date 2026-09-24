@@ -6,9 +6,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "AI Hackathon Demo"
     environment: str = "development"
-    ai_provider: str = "mock"
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
     postgres_db: str = "ai_app"
     postgres_user: str = "hackathon"
     postgres_password: str = "password"
