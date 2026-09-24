@@ -20,19 +20,6 @@ services:
     networks:
       - ai-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: fire-lizard-redis
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - ai-network
-
   smtp:
     image: mailhog/mailhog:latest
     container_name: fire-lizard-smtp
